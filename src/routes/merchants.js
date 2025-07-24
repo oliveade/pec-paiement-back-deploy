@@ -1,7 +1,9 @@
 const express = require("express");
 const validator = require("validator");
 const Merchant = require("../models/Merchant");
+const Transaction = require("../models/Transaction");
 const crypto = require("crypto");
+
 const bcrypt = require("bcrypt");
 const sendActivationEmail = require("../utils/sendActivationEmail");
 const sendCredentialsEmail = require("../utils/sendCredentialsEmail");
