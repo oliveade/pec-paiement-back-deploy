@@ -2,6 +2,7 @@ const express = require("express");
 const validator = require("validator");
 const Merchant = require("../models/Merchant");
 const Transaction = require("../models/Transaction");
+const { Sequelize } = require('sequelize');
 const crypto = require("crypto");
 
 const bcrypt = require("bcrypt");
