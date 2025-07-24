@@ -5,6 +5,7 @@ require('./models/Associations');
 const Merchant = require('./models/Merchant');
 const Transaction = require('./models/Transaction');
 const Operation = require('./models/Operation');
+const Admin = require('./models/Admin');
 const bcrypt = require('bcrypt');
 
 
