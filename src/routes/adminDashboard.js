@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { Op, fn, col } = require('sequelize');
 const isAdmin = require("../middleware/isAdmin");
 const Merchant = require("../models/Merchant");
 const Transaction = require("../models/Transaction");
@@ -113,6 +114,35 @@ if (query) {
         error: "Erreur lors de la récupération des transactions",
         details: err.message,
       });
+  }
+});
+router.get('/stats/graph-data', isAdmin, async (req, res) => {
+  try {
+    const transactions = await Transaction.findAll({
+      attributes: [
+        [fn('DATE', col('createdAt')), 'date'],
+        [fn('COUNT', col('id')), 'count'],
+        [fn('SUM', fn('CASE WHEN "status" = \'success\' THEN "amount" ELSE 0 END')), 'totalSuccess']
+      ],
+      group: [fn('DATE', col('createdAt'))],
+      order: [[fn('DATE', col('createdAt')), 'ASC']]
+    });
+
+    const result = {
+      transactionsByDate: {},
+      amountsByDate: {}
+    };
+
+    transactions.forEach(t => {
+      const date = t.getDataValue('date');
+      result.transactionsByDate[date] = parseInt(t.getDataValue('count'));
+      result.amountsByDate[date] = parseFloat(t.getDataValue('totalSuccess')) || 0;
+    });
+
+    res.json(result);
+  } catch (err) {
+    console.error('Erreur stats graph :', err);
+    res.status(500).json({ error: 'Erreur lors du chargement des données du graphique' });
   }
 });
 module.exports = router;
