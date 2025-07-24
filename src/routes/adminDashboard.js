@@ -1,4 +1,5 @@
 const express = require("express");
+const { Sequelize } = require('sequelize');
 const router = express.Router();
 const { Op, fn, col } = require('sequelize');
 const isAdmin = require("../middleware/isAdmin");
