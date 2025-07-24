@@ -21,6 +21,7 @@ const paymentRoutes = require('./routes/payment');
 const adminRoutes = require('./routes/admin');
 const adminDashboardRoutes = require('./routes/adminDashboard');
 const operationsRoutes = require('./routes/operations');
+const impersonateRoutes = require('./routes/impersonate');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -44,6 +45,7 @@ app.use(express.json());
 
 app.use('/admin', adminDashboardRoutes);
 app.use('/admin', adminRoutes);
+app.use('/admin', impersonateRoutes);
 app.use('/auth', authRoutes);
 app.use('/merchants', merchantRoutes);
 app.use('/transactions', transactionRoutes);
@@ -59,6 +61,6 @@ app.listen(PORT, async () => {
   console.log(`Serveur lancé sur http://localhost:${PORT}`);
   await connectPostgres();
   await syncDb();
-  await createDefaultAdmin();
+  // await createDefaultAdmin();
   await connectMongo();
 });
