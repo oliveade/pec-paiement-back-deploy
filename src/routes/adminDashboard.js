@@ -4,7 +4,6 @@ const { Op, fn, col } = require('sequelize');
 const isAdmin = require("../middleware/isAdmin");
 const Merchant = require("../models/Merchant");
 const Transaction = require("../models/Transaction");
-const { Op } = require("sequelize");
 router.get("/stats", isAdmin, async (req, res) => {
   try {
     const merchants = await Merchant.count();
