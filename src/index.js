@@ -23,10 +23,11 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: ['https://pec-paiement-front-deploy.vercel.app/','http://localhost:5173'],
-  credentials: true
-}));
-
+  origin: ['https://pec-paiement-front-deploy.vercel.app', 'http://localhost:5173'], 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'appid', 'appsecret']
+}))
 app.use(express.json());
 
 app.use('/admin', adminDashboardRoutes);
