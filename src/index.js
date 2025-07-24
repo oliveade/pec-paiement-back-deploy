@@ -29,7 +29,7 @@ const createDefaultAdmin = async () => {
   if (!adminExists) {
     const hashed = await bcrypt.hash('admin1234', 10);
     await Admin.create({ email: 'admin@example.com', password: hashed });
-    console.log(' Admin par défaut créé');
+    console.log('Admin par défaut créé');
   } else {
     console.log('Admin déjà existant');
   }
@@ -52,12 +52,13 @@ app.use('/transactions', operationsRoutes);
 app.use('/', pspRoutes);
 
 app.get('/', (req, res) => {
-  res.send('API Payment prête');
+  res.send('API de paiement prêt');
 });
 
 app.listen(PORT, async () => {
   console.log(`Serveur lancé sur http://localhost:${PORT}`);
   await connectPostgres();
   await syncDb();
+  await createDefaultAdmin();
   await connectMongo();
 });

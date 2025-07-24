@@ -16,9 +16,6 @@ router.post("/", async (req, res) => {
     Kbis,
     contactName,
     contactPhone,
-    redirectSuccessUrl,
-    redirectCancelUrl,
-    currency,
     password,
   } = req.body;
 
@@ -28,9 +25,6 @@ router.post("/", async (req, res) => {
     !Kbis ||
     !contactName ||
     !contactPhone ||
-    !redirectSuccessUrl ||
-    !redirectCancelUrl ||
-    !currency ||
     !password
   ) {
     return res.status(400).json({ error: "Tous les champs sont requis." });
@@ -48,13 +42,6 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ error: "Mot de passe trop court (min 6 caractères)." });
   }
 
-  const supportedCurrencies = ["EUR", "USD"];
-  if (!supportedCurrencies.includes(currency)) {
-    return res.status(400).json({
-      error: `Devise non supportée. Choisissez parmi : ${supportedCurrencies.join(", ")}`,
-    });
-  }
-
   try {
     const hashedPassword = await bcrypt.hash(password, 10);
     const credentials = Merchant.generateCredentials();
@@ -68,9 +55,6 @@ router.post("/", async (req, res) => {
       contactEmail,
       contactName,
       contactPhone,
-      redirectUrlSuccess: redirectSuccessUrl,
-      redirectUrlCancel: redirectCancelUrl,
-      currency,
       password: hashedPassword,
       appId: credentials.appId,
       appSecret: credentials.appSecret,

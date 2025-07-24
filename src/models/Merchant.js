@@ -30,18 +30,6 @@ const Merchant = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    redirectUrlSuccess: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    redirectUrlCancel: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    currency: {
-      type: DataTypes.STRING(3),
-      allowNull: false,
-    },
     appId: {
       type: DataTypes.STRING,
       unique: true,
