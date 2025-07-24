@@ -180,4 +180,42 @@ router.get("/me/transactions", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/dashboard-stats", verifyToken, async (req, res) => {
+  try {
+    const merchantId = req.merchant.merchantId;
+
+    const [successAmount, failedAmount, transactionsPerDay] = await Promise.all([
+      Transaction.sum('amount', {
+        where: { merchantId, status: 'success' }
+      }),
+      Transaction.sum('amount', {
+        where: { merchantId, status: 'failed' }
+      }),
+      Transaction.findAll({
+        where: { merchantId },
+        attributes: [
+          [Sequelize.fn('DATE', Sequelize.col('createdAt')), 'date'],
+          [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+        ],
+        group: [Sequelize.fn('DATE', Sequelize.col('createdAt'))],
+        order: [[Sequelize.fn('DATE', Sequelize.col('createdAt')), 'ASC']]
+      })
+    ])
+
+    const dailyStats = transactionsPerDay.map(t => ({
+      date: t.dataValues.date,
+      count: parseInt(t.dataValues.count)
+    }))
+
+    res.json({
+      totalAmountSuccess: successAmount || 0,
+      totalAmountFailed: failedAmount || 0,
+      transactionsPerDay: dailyStats
+    })
+  } catch (err) {
+    console.error("Erreur dashboard marchand :", err)
+    res.status(500).json({ error: "Erreur serveur", details: err.message })
+  }
+})
+
 module.exports = router;
