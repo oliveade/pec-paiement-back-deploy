@@ -23,7 +23,7 @@ const connectPostgres = async () => {
 
 const syncDb = async () => {
   try {
-    sequelize.sync({ alter: true })
+    sequelize.sync({ force: true })
     console.log('Tables Sequelize synchronisées');
   } catch (error) {
     console.error('Erreur sync Sequelize:', error);
