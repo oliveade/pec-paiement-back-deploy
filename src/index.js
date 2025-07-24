@@ -5,6 +5,7 @@ require('./models/Associations');
 const Merchant = require('./models/Merchant');
 const Transaction = require('./models/Transaction');
 const Operation = require('./models/Operation');
+const bcrypt = require('bcrypt');
 
 
 const { connectPostgres, syncDb } = require('./db/sequelize');
@@ -22,6 +23,16 @@ const operationsRoutes = require('./routes/operations');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+const createDefaultAdmin = async () => {
+  const adminExists = await Admin.findOne({ where: { email: 'admin@example.com' } });
+  if (!adminExists) {
+    const hashed = await bcrypt.hash('admin1234', 10);
+    await Admin.create({ email: 'admin@example.com', password: hashed });
+    console.log(' Admin par défaut créé');
+  } else {
+    console.log('Admin déjà existant');
+  }
+};
 app.use(cors({
   origin: ['https://pec-paiement-front-deploy.vercel.app', 'http://localhost:5173'], 
   credentials: true,
@@ -47,5 +58,6 @@ app.listen(PORT, async () => {
   console.log(`Serveur lancé sur http://localhost:${PORT}`);
   await connectPostgres();
   await syncDb();
+  await createDefaultAdmin(); 
   await connectMongo();
 });
