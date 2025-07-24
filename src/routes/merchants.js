@@ -59,7 +59,7 @@ router.post("/", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const credentials = Merchant.generateCredentials();
     const activationToken = crypto.randomBytes(32).toString("hex");
-    const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+    const baseUrl = process.env.BASE_URL;
     const activationLink = `${baseUrl}/merchants/activate/${activationToken}`;
 
     const newMerchant = await Merchant.create({

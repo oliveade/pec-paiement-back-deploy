@@ -46,7 +46,7 @@ router.post('/', async (req, res) => {
       items: metadata?.items || null
     })
 
-    const paymentUrl = `http://localhost:5173/payment/${transaction.id}`
+    const paymentUrl = `${process.env.FRONT_URL}/payment/${transaction.id}`
     transaction.paymentUrl = paymentUrl
     await transaction.save()
 
@@ -88,10 +88,10 @@ router.post('/pay/:id', async (req, res) => {
     transaction.status = 'pending'
     await transaction.save()
 
-    await axios.post('http://localhost:4000/psp/pay', {
+    await axios.post(`${process.env.PSP_URL}/psp/pay`, {
       transactionId: transaction.id,
       amount: transaction.amount,
-      callbackUrl: 'http://localhost:3000/callback',
+      callbackUrl: `${process.env.BASE_URL}/callback`,
       card 
     })
 

@@ -23,7 +23,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: ['https://pec-paiement-front-deploy-b7jvjtayb-olives-projects-960e6f02.vercel.app','http://localhost:5173'],
   credentials: true
 }));
 
