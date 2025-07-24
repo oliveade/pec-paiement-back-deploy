@@ -58,6 +58,5 @@ app.listen(PORT, async () => {
   console.log(`Serveur lancé sur http://localhost:${PORT}`);
   await connectPostgres();
   await syncDb();
-  await createDefaultAdmin(); 
   await connectMongo();
 });
