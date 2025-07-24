@@ -117,31 +117,32 @@ if (query) {
 });
 router.get('/stats/graph-data', isAdmin, async (req, res) => {
   try {
-    const transactions = await Transaction.findAll({
+    const totalAmountSuccess = await Transaction.sum('amount', {
+      where: { status: 'success' }
+    })
+
+    const totalAmountFailed = await Transaction.sum('amount', {
+      where: { status: 'failed' }
+    })
+
+    const transactionsPerDay = await Transaction.findAll({
       attributes: [
-        [fn('DATE', col('createdAt')), 'date'],
-        [fn('COUNT', col('id')), 'count'],
-        [fn('SUM', fn('CASE WHEN "status" = \'success\' THEN "amount" ELSE 0 END')), 'totalSuccess']
+        [Sequelize.fn('DATE', Sequelize.col('createdAt')), 'date'],
+        [Sequelize.fn('COUNT', Sequelize.col('id')), 'count'],
+        [Sequelize.fn('SUM', Sequelize.col('amount')), 'amount']
       ],
-      group: [fn('DATE', col('createdAt'))],
-      order: [[fn('DATE', col('createdAt')), 'ASC']]
-    });
+      group: [Sequelize.fn('DATE', Sequelize.col('createdAt'))],
+      order: [[Sequelize.fn('DATE', Sequelize.col('createdAt')), 'ASC']]
+    })
 
-    const result = {
-      transactionsByDate: {},
-      amountsByDate: {}
-    };
-
-    transactions.forEach(t => {
-      const date = t.getDataValue('date');
-      result.transactionsByDate[date] = parseInt(t.getDataValue('count'));
-      result.amountsByDate[date] = parseFloat(t.getDataValue('totalSuccess')) || 0;
-    });
-
-    res.json(result);
+    res.json({
+      totalAmountSuccess,
+      totalAmountFailed,
+      transactionsPerDay
+    })
   } catch (err) {
-    console.error('Erreur stats graph :', err);
-    res.status(500).json({ error: 'Erreur lors du chargement des données du graphique' });
+    console.error('Erreur stats graphiques :', err)
+    res.status(500).json({ error: 'Erreur lors de la récupération des statistiques' })
   }
 });
 module.exports = router;
