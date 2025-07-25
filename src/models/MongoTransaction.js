@@ -8,7 +8,7 @@ const MongoTransactionSchema = new mongoose.Schema({
 	status: {
 		type: String,
 		required: true,
-		enum: ['pending', 'success', 'failed', 'cancelled'],
+		enum: ['created','pending', 'success', 'failed', 'cancelled'],
 		default: 'pending'
 	},
 	paymentUrl: { type: String },
