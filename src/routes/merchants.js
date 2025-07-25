@@ -4,6 +4,7 @@ const Merchant = require("../models/Merchant");
 const Transaction = require("../models/Transaction");
 const { Sequelize } = require('sequelize');
 const crypto = require("crypto");
+const { Op } = require('sequelize');
 
 const bcrypt = require("bcrypt");
 const sendActivationEmail = require("../utils/sendActivationEmail");
@@ -220,5 +221,29 @@ router.get("/dashboard-stats", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur", details: err.message })
   }
 })
+router.post('/validate-credentials', async (req, res) => {
+  const { appId, appSecret } = req.body;
 
+  if (!appId || !appSecret) {
+    return res.status(400).json({ error: 'Les credentials sont requis.' });
+  }
+
+  try {
+    const merchant = await Merchant.findOne({
+      where: {
+        appId,
+        appSecret
+      },
+      attributes: ['id', 'companyName']
+    });
+
+    if (!merchant) {
+      return res.status(401).json({ error: 'Identifiants invalides.' });
+    }
+
+    res.json({ merchant });
+  } catch (err) {
+    res.status(500).json({ error: 'Erreur serveur', details: err.message });
+  }
+});
 module.exports = router;
