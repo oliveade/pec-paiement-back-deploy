@@ -6,6 +6,9 @@ const { Sequelize } = require('sequelize');
 const crypto = require("crypto");
 const { Op } = require('sequelize');
 
+const mongoose = require('mongoose');
+const MongoTransaction = require('../models/MongoTransaction');
+
 const bcrypt = require("bcrypt");
 const sendActivationEmail = require("../utils/sendActivationEmail");
 const sendCredentialsEmail = require("../utils/sendCredentialsEmail");
@@ -24,12 +27,12 @@ router.post("/", async (req, res) => {
   } = req.body;
 
   if (
-    !companyName ||
-    !contactEmail ||
-    !Kbis ||
-    !contactName ||
-    !contactPhone ||
-    !password
+      !companyName ||
+      !contactEmail ||
+      !Kbis ||
+      !contactName ||
+      !contactPhone ||
+      !password
   ) {
     return res.status(400).json({ error: "Tous les champs sont requis." });
   }
@@ -143,7 +146,7 @@ router.get("/activate/:token", async (req, res) => {
     });
 
     if (!merchant) {
-      return res.status(400).send("Lien d’activation invalide ou expiré.");
+      return res.status(400).send("Lien d'activation invalide ou expiré.");
     }
 
     merchant.isActive = true;
@@ -151,20 +154,21 @@ router.get("/activate/:token", async (req, res) => {
     await merchant.save();
 
     await sendCredentialsEmail(
-      merchant.contactEmail,
-      merchant.appId,
-      merchant.appSecret
+        merchant.contactEmail,
+        merchant.appId,
+        merchant.appSecret
     );
 
     res.redirect(
-      `${process.env.FRONT_URL}/activation-success?message=activated`
+        `${process.env.FRONT_URL}/activation-success?message=activated`
     );
   } catch (err) {
     res
-      .status(500)
-      .send("Une erreur est survenue lors de l’activation du compte.");
+    .status(500)
+    .send("Une erreur est survenue lors de l'activation du compte.");
   }
 });
+
 router.get("/me/transactions", authenticateToken, async (req, res) => {
   try {
     const merchant = req.user;
@@ -179,8 +183,8 @@ router.get("/me/transactions", authenticateToken, async (req, res) => {
   } catch (err) {
     console.error(err);
     res
-      .status(500)
-      .json({ error: "Erreur lors du chargement des transactions" });
+    .status(500)
+    .json({ error: "Erreur lors du chargement des transactions" });
   }
 });
 
@@ -221,6 +225,120 @@ router.get("/dashboard-stats", verifyToken, async (req, res) => {
     res.status(500).json({ error: "Erreur serveur", details: err.message })
   }
 })
+
+router.get('/dashboard-stream', verifyToken, async (req, res) => {
+  console.log('Nouvelle connexion SSE Marchand:', req.merchant.merchantId);
+
+  if (mongoose.connection.readyState !== 1) {
+    console.log('MongoDB non connecté, fallback sur Sequelize');
+    return res.status(503).json({ error: 'Base de données MongoDB non connectée' });
+  }
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
+  });
+
+  const merchantId = req.merchant.merchantId;
+
+  async function calculateMerchantMetrics() {
+    try {
+      const totalAmountResult = await MongoTransaction.aggregate([
+        { $match: { merchantId: merchantId, status: 'success' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+
+      const totalAmountSuccess = totalAmountResult[0]?.total || 0;
+
+      const totalAmountFailedResult = await MongoTransaction.aggregate([
+        { $match: { merchantId: merchantId, status: 'failed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]);
+
+      const totalAmountFailed = totalAmountFailedResult[0]?.total || 0;
+
+      const totalTransactions = await MongoTransaction.countDocuments({ merchantId });
+      const successfulTransactions = await MongoTransaction.countDocuments({
+        merchantId,
+        status: 'success'
+      });
+
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+      const transactionsPerDay = await MongoTransaction.aggregate([
+        {
+          $match: {
+            merchantId: merchantId,
+            createdAt: { $gte: sevenDaysAgo }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+            },
+            count: { $sum: 1 },
+            amount: { $sum: { $cond: [{ $eq: ["$status", "success"] }, "$amount", 0] } }
+          }
+        },
+        {
+          $project: {
+            _id: 0,
+            date: "$_id",
+            count: 1,
+            amount: 1
+          }
+        },
+        { $sort: { date: 1 } }
+      ]);
+
+      return {
+        totalTransactions,
+        successfulTransactions,
+        totalAmountSuccess: Math.round(totalAmountSuccess * 100) / 100,
+        totalAmountFailed: Math.round(totalAmountFailed * 100) / 100,
+        transactionsPerDay,
+        lastUpdated: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error('Erreur calcul métriques marchand:', error);
+      return null;
+    }
+  }
+
+  try {
+    const initialMetrics = await calculateMerchantMetrics();
+    if (initialMetrics) {
+      res.write(`data: ${JSON.stringify(initialMetrics)}\n\n`);
+      console.log('Métriques initiales envoyées au marchand', merchantId);
+    }
+  } catch (error) {
+    console.error('Erreur envoi métriques initiales marchand:', error);
+  }
+
+  const updateInterval = setInterval(async () => {
+    try {
+      const metrics = await calculateMerchantMetrics();
+      if (metrics) {
+        res.write(`data: ${JSON.stringify(metrics)}\n\n`);
+        console.log('Métriques mises à jour pour marchand', merchantId);
+      }
+    } catch (error) {
+      console.error('Erreur mise à jour stats marchand:', error);
+      clearInterval(updateInterval);
+    }
+  }, 5000);
+
+  req.on('close', () => {
+    console.log('Client SSE Marchand déconnecté:', merchantId);
+    clearInterval(updateInterval);
+  });
+});
+
 router.post('/validate-credentials', async (req, res) => {
   const { appId, appSecret } = req.body;
 
@@ -246,4 +364,5 @@ router.post('/validate-credentials', async (req, res) => {
     res.status(500).json({ error: 'Erreur serveur', details: err.message });
   }
 });
+
 module.exports = router;
