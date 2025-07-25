@@ -61,4 +61,58 @@ const Transaction = sequelize.define(
   }
 );
 
+const MongoTransaction = require('./MongoTransaction');
+
+Transaction.addHook('afterCreate', async (transaction) => {
+    try {
+        await MongoTransaction.create({
+            postgresId: transaction.id,
+            amount: transaction.amount,
+            currency: transaction.currency,
+            status: transaction.status,
+            paymentUrl: transaction.paymentUrl,
+            redirectSuccessUrl: transaction.redirectSuccessUrl,
+            redirectCancelUrl: transaction.redirectCancelUrl,
+            callbackUrl: transaction.callbackUrl,
+            merchantId: transaction.merchantId,
+            customerName: transaction.customerName,
+            customerEmail: transaction.customerEmail,
+            customerAddress: transaction.customerAddress,
+            items: transaction.items,
+            createdAt: transaction.createdAt,
+            updatedAt: transaction.updatedAt
+        });
+        console.log('Transaction synchronisée avec MongoDB');
+    } catch (error) {
+        console.error('Erreur sync MongoDB:', error);
+    }
+});
+
+Transaction.addHook('afterUpdate', async (transaction) => {
+    try {
+        await MongoTransaction.updateOne(
+            { postgresId: transaction.id },
+            {
+                amount: transaction.amount,
+                currency: transaction.currency,
+                status: transaction.status,
+                paymentUrl: transaction.paymentUrl,
+                redirectSuccessUrl: transaction.redirectSuccessUrl,
+                redirectCancelUrl: transaction.redirectCancelUrl,
+                callbackUrl: transaction.callbackUrl,
+                merchantId: transaction.merchantId,
+                customerName: transaction.customerName,
+                customerEmail: transaction.customerEmail,
+                customerAddress: transaction.customerAddress,
+                items: transaction.items,
+                updatedAt: new Date()
+            }
+        );
+        console.log('Transaction mise à jour dans MongoDB');
+    } catch (error) {
+        console.error('Erreur update MongoDB:', error);
+    }
+});
+
 module.exports = Transaction;
+
