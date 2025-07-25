@@ -22,6 +22,8 @@ const adminRoutes = require('./routes/admin');
 const adminDashboardRoutes = require('./routes/adminDashboard');
 const operationsRoutes = require('./routes/operations');
 const impersonateRoutes = require('./routes/impersonate');
+const dashboardStreamRouter = require('./routes/dashboard-stream');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -51,6 +53,7 @@ app.use('/merchants', merchantRoutes);
 app.use('/transactions', transactionRoutes);
 app.use('/payment', paymentRoutes);
 app.use('/transactions', operationsRoutes);
+app.use('/api/dashboard-stream', dashboardStreamRouter);
 app.use('/', pspRoutes);
 
 app.get('/', (req, res) => {
@@ -61,5 +64,10 @@ app.listen(PORT, async () => {
   console.log(`Serveur lancé sur http://localhost:${PORT}`);
   await connectPostgres();
   await syncDb();
-  await connectMongo();
+  try {
+    await connectMongo();
+    console.log('MongoDB connecté');
+  } catch (error) {
+    console.error('MongoDB non disponible, dashboard temps réel désactivé');
+  }
 });
